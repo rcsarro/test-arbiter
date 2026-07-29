@@ -1,0 +1,102 @@
+name: Test Arbiter
+description: Triage test failures with AI and post the report as a PR comment
+author: rcsarro
+
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  junit:
+    description: Path or glob to JUnit XML files (e.g. "test-results/**/*.xml")
+    required: true
+  project:
+    description: Project name used in the report and run ID
+    required: false
+    default: ''
+  provider:
+    description: AI provider — anthropic, openai, or gemini (auto-detected from env if omitted)
+    required: false
+    default: ''
+  model:
+    description: Model override (e.g. gpt-4o, gemini-2.0-flash)
+    required: false
+    default: ''
+  post-comment:
+    description: Post the triage report as a PR comment (true/false)
+    required: false
+    default: 'true'
+  github-token:
+    description: GitHub token used to post the PR comment
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  run-id:
+    description: The Test Arbiter run ID (e.g. myapp-20260726-143022-a1b2)
+    value: ${{ steps.triage.outputs.run_id }}
+  real-failures:
+    description: Number of real failures found
+    value: ${{ steps.triage.outputs.real_failures }}
+  flaky-tests:
+    description: Number of flaky tests found
+    value: ${{ steps.triage.outputs.flaky_tests }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install Test Arbiter
+      shell: bash
+      run: npm install -g test-arbiter
+
+    - name: Triage test results
+      id: triage
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ env.ANTHROPIC_API_KEY }}
+        OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+        GEMINI_API_KEY: ${{ env.GEMINI_API_KEY }}
+      run: |
+        COMMENT_FILE="$RUNNER_TEMP/test-arbiter-comment.md"
+        JSON_FILE="$RUNNER_TEMP/test-arbiter-report.json"
+
+        # Build arg list
+        EXTRA=""
+        [ -n "${{ inputs.project }}" ]  && EXTRA="$EXTRA --project '${{ inputs.project }}'"
+        [ -n "${{ inputs.provider }}" ] && EXTRA="$EXTRA --provider ${{ inputs.provider }}"
+        [ -n "${{ inputs.model }}" ]    && EXTRA="$EXTRA --model ${{ inputs.model }}"
+
+        # Run once — markdown to stdout (comment), JSON saved via --save-json
+        eval "qa-agent run-regression \
+          --junit '${{ inputs.junit }}' \
+          --output markdown \
+          --save-json '$JSON_FILE' \
+          --no-push \
+          $EXTRA" > "$COMMENT_FILE"
+
+        # Extract outputs from the saved JSON
+        if [ -f "$JSON_FILE" ]; then
+          REAL=$(node -e "const d=require('$JSON_FILE'); process.stdout.write(String((d.realFailures||[]).length))")
+          FLAKY=$(node -e "const d=require('$JSON_FILE'); process.stdout.write(String((d.flakyTests||[]).length))")
+          RUN_ID=$(node -e "const d=require('$JSON_FILE'); process.stdout.write(d.runId||'')")
+        else
+          REAL=0; FLAKY=0; RUN_ID=""
+        fi
+
+        echo "comment_file=$COMMENT_FILE" >> "$GITHUB_OUTPUT"
+        echo "real_failures=$REAL"        >> "$GITHUB_OUTPUT"
+        echo "flaky_tests=$FLAKY"         >> "$GITHUB_OUTPUT"
+        echo "run_id=$RUN_ID"             >> "$GITHUB_OUTPUT"
+
+    - name: Post PR comment
+      if: inputs.post-comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        PR="${{ github.event.pull_request.number }}"
+        FILE="${{ steps.triage.outputs.comment_file }}"
+
+        # Update the previous Test Arbiter comment if one exists; otherwise create
+        gh pr comment "$PR" --body-file "$FILE" --edit-last 2>/dev/null \
+          || gh pr comment "$PR" --body-file "$FILE"
