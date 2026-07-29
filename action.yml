@@ -47,7 +47,10 @@ runs:
   steps:
     - name: Install Test Arbiter
       shell: bash
-      run: npm install -g test-arbiter
+      # Pinned deliberately: this action's own tag (v1) is the contract users pin to, so the
+      # CLI version it runs must not drift underneath them. Bump this in the same commit
+      # that moves the v1 tag.
+      run: npm install -g test-arbiter@0.2.7
 
     - name: Triage test results
       id: triage
@@ -56,23 +59,30 @@ runs:
         ANTHROPIC_API_KEY: ${{ env.ANTHROPIC_API_KEY }}
         OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
         GEMINI_API_KEY: ${{ env.GEMINI_API_KEY }}
+        # Inputs come in as env vars, never interpolated into the script body. ${{ }} is
+        # substituted by the runner before bash parses the line, so inlining a value that
+        # contains a quote breaks the command — and a hostile one would execute.
+        INPUT_JUNIT: ${{ inputs.junit }}
+        INPUT_PROJECT: ${{ inputs.project }}
+        INPUT_PROVIDER: ${{ inputs.provider }}
+        INPUT_MODEL: ${{ inputs.model }}
       run: |
         COMMENT_FILE="$RUNNER_TEMP/test-arbiter-comment.md"
         JSON_FILE="$RUNNER_TEMP/test-arbiter-report.json"
 
-        # Build arg list
-        EXTRA=""
-        [ -n "${{ inputs.project }}" ]  && EXTRA="$EXTRA --project '${{ inputs.project }}'"
-        [ -n "${{ inputs.provider }}" ] && EXTRA="$EXTRA --provider ${{ inputs.provider }}"
-        [ -n "${{ inputs.model }}" ]    && EXTRA="$EXTRA --model ${{ inputs.model }}"
+        # Build the arg list as an array so values stay single arguments — no eval, no quoting
+        ARGS=(run-regression
+          --junit "$INPUT_JUNIT"
+          --output markdown
+          --save-json "$JSON_FILE"
+          --no-push)
+
+        if [ -n "$INPUT_PROJECT" ];  then ARGS+=(--project  "$INPUT_PROJECT");  fi
+        if [ -n "$INPUT_PROVIDER" ]; then ARGS+=(--provider "$INPUT_PROVIDER"); fi
+        if [ -n "$INPUT_MODEL" ];    then ARGS+=(--model    "$INPUT_MODEL");    fi
 
         # Run once — markdown to stdout (comment), JSON saved via --save-json
-        eval "qa-agent run-regression \
-          --junit '${{ inputs.junit }}' \
-          --output markdown \
-          --save-json '$JSON_FILE' \
-          --no-push \
-          $EXTRA" > "$COMMENT_FILE"
+        qa-agent "${ARGS[@]}" > "$COMMENT_FILE"
 
         # Extract outputs from the saved JSON
         if [ -f "$JSON_FILE" ]; then
