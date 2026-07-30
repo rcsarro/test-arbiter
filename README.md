@@ -361,6 +361,9 @@ qa-agent generate --risk critical --max-gaps 10
 # Large repo — smaller chunks per AI request during gap analysis
 qa-agent generate --chunk-size 30
 
+# Generate only one suggested test, rather than everything a gap proposed
+qa-agent generate --test-id g2.1
+
 # Generate only specific gaps found by a previous `qa-agent gaps` run
 qa-agent generate --gap-id g3
 qa-agent generate --gap-id g1 --gap-id g4
@@ -370,7 +373,7 @@ qa-agent generate --gap-id g1,g4
 **How it works:**
 
 1. Scans source files and existing tests (same as `qa-agent gaps`)
-2. If `--gap-id` is given, loads the report saved by the last `qa-agent gaps` run and picks those gaps — no AI gap analysis is re-run. Otherwise, runs gap analysis with the AI to identify untested code, filters by `--risk` level, sorts critical-first, and saves the report for later `--gap-id` use.
+2. If `--gap-id` or `--test-id` is given, loads the report saved by the last `qa-agent gaps` run and picks those — no AI gap analysis is re-run. Every gap gets an id (`g1`, `g2`) and every suggested test within it gets one derived from its gap (`g1.1`, `g1.2`), both shown in `qa-agent gaps` output. A gap id selects all of that gap's suggested tests; a test id selects just one. The two can be mixed, and either flag accepts either form. Otherwise, runs gap analysis with the AI to identify untested code, filters by `--risk` level, sorts critical-first, and saves the report for later `--gap-id` use.
 3. Groups gaps by source file; generates one test file per source file
 4. Picks the closest existing test files as style references so generated code matches your conventions
 5. Writes the file wherever the target framework actually discovers tests from — see **Supported frameworks** below
@@ -400,6 +403,7 @@ qa-agent generate --gap-id g1,g4
 | `--tests <path>` | Test directory for style reference (auto-detected) |
 | `--risk <levels>` | Comma-separated risk levels: `critical,high,medium,low` (default: all) |
 | `--gap-id <id>` | Generate only this gap id from a previous `qa-agent gaps` run (repeatable or comma-separated; omit for all gaps, ignores `--risk`/`--max-gaps`) |
+| `--test-id <id>` | Generate only this suggested test, e.g. `g2.1` (repeatable or comma-separated). Narrows a gap to one of its suggestions instead of all of them |
 | `--framework <name>` | Test framework: `jest`, `vitest`, `playwright`, `pytest`, `mocha`, `node` (`node --test`) |
 | `--out <dir>` | Output directory for generated tests (default: framework-specific — see **Supported frameworks** below) |
 | `--max-gaps <n>` | Maximum number of gaps to generate for (default: unlimited) |
