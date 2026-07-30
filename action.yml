@@ -50,7 +50,7 @@ runs:
       # Pinned deliberately: this action's own tag (v1) is the contract users pin to, so the
       # CLI version it runs must not drift underneath them. Bump this in the same commit
       # that moves the v1 tag.
-      run: npm install -g test-arbiter@0.4.0
+      run: npm install -g test-arbiter@0.5.0
 
     - name: Triage test results
       id: triage
