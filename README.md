@@ -45,7 +45,7 @@ cd your-project
 qa-agent config init
 ```
 
-Detects jest/vitest/playwright/mocha from your `package.json` scripts and writes `.test-arbiter/config.yaml` wired up with JUnit output, prompting you to accept, edit, or skip each suite it finds. Nothing detected? It falls back to a starter template you can edit by hand — see [Config file](#config-file-test-arbiterconfigyaml) below for the full structure.
+Detects jest/vitest/playwright/mocha/pytest/`node --test` and writes `.test-arbiter/config.yaml` wired up with JUnit output, prompting you to accept, edit, or skip each suite it finds. In a monorepo it looks inside your packages too. If it can't tell how your tests run, it asks you for the command rather than leaving you to hand-edit YAML — see [Config file](#config-file-test-arbiterconfigyaml) below for the full structure.
 
 ### Set up your AI provider
 
@@ -130,7 +130,7 @@ qa-agent test
 
 ### Config file (`.test-arbiter/config.yaml`)
 
-Run `qa-agent config init` to generate one — it detects jest/vitest/playwright/mocha/`node --test` from your `package.json` scripts and proposes a `command` + `junit_glob` (and reporter env vars, where the runner needs them) per suite, prompting you to accept, edit, or skip each. It also offers to install a missing JUnit reporter (e.g. `jest-junit`) as a dev dependency. In a monorepo it looks inside your packages too — see [Monorepos](#monorepos) below. In a non-interactive shell (CI) or with `--yes`, it accepts everything detected without prompting. If it can't work out how your tests run, it asks you for the command rather than leaving you with an unusable file.
+Run `qa-agent config init` to generate one — it detects jest/vitest/playwright/mocha/pytest/`node --test` from your `package.json` scripts, dependencies, and config files (`pytest.ini`, `pyproject.toml`), and proposes a `command` + `junit_glob` (and reporter env vars, where the runner needs them) per suite, prompting you to accept, edit, or skip each. It also offers to install a missing JUnit reporter (e.g. `jest-junit`) as a dev dependency. In a monorepo it looks inside your packages too — see [Monorepos](#monorepos) below. In a non-interactive shell (CI) or with `--yes`, it accepts everything detected without prompting. If it can't work out how your tests run, it asks you for the command rather than leaving you with an unusable file.
 
 Most commands work fine without a config file (using defaults and flags), but it lets you define suites, per-project overrides, and a model override once instead of passing flags every time. Full structure:
 
@@ -1141,7 +1141,7 @@ Add to `.vscode/mcp.json` in your project:
 
 ### Config file (`.test-arbiter/config.yaml`)
 
-The MCP tools read the same `.test-arbiter/config.yaml` as the CLI, if one exists in the project — suite definitions, `junit_glob` patterns, and per-project overrides all apply. Run `qa-agent config init` from a terminal once to generate it (it detects jest/vitest/playwright/mocha from your `package.json` and proposes suites interactively); after that, everything else can happen from chat.
+The MCP tools read the same `.test-arbiter/config.yaml` as the CLI, if one exists in the project — suite definitions, `junit_glob` patterns, and per-project overrides all apply. Run `qa-agent config init` from a terminal once to generate it (it detects jest/vitest/playwright/mocha/pytest/`node --test` and proposes suites interactively); after that, everything else can happen from chat.
 
 Full structure, for reference:
 
