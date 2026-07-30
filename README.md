@@ -400,7 +400,7 @@ qa-agent generate --gap-id g1,g4
 | `--tests <path>` | Test directory for style reference (auto-detected) |
 | `--risk <levels>` | Comma-separated risk levels: `critical,high,medium,low` (default: all) |
 | `--gap-id <id>` | Generate only this gap id from a previous `qa-agent gaps` run (repeatable or comma-separated; omit for all gaps, ignores `--risk`/`--max-gaps`) |
-| `--framework <name>` | Test framework: `jest`, `vitest`, `playwright`, `pytest`, `mocha`, `cypress` |
+| `--framework <name>` | Test framework: `jest`, `vitest`, `playwright`, `pytest`, `mocha`, `node` (`node --test`) |
 | `--out <dir>` | Output directory for generated tests (default: framework-specific — see **Supported frameworks** below) |
 | `--max-gaps <n>` | Maximum number of gaps to generate for (default: unlimited) |
 | `--chunk-size <n>` | Source files per AI request during gap analysis (default: 50) |
@@ -410,7 +410,7 @@ qa-agent generate --gap-id g1,g4
 | `-m, --model <model>` | Model override |
 | `-o, --output <format>` | `rich` or `json` |
 
-The framework is auto-detected from `package.json` dependencies (`vitest`, `jest`, `@playwright/test`, `cypress`, `mocha`) and pytest config files. Use `--framework` to override.
+The framework is auto-detected from your `package.json` scripts and dependencies and from config files such as `pytest.ini`. If none is found, `generate` offers to install and configure one for you. Use `--framework` to override.
 
 **Supported frameworks**
 
@@ -421,9 +421,8 @@ The framework is auto-detected from `package.json` dependencies (`vitest`, `jest
 | `mocha` | Alongside the source file | `<name>.generated.test.ts` | Matches the `spec:` pattern in the `.mocharc.yml` `qa-agent generate` scaffolds for you |
 | `pytest` | Alongside the source file | `test_<name>_generated.py` | Matches pytest's default `test_*.py` / `*_test.py` discovery |
 | `playwright` | `tests/` (mirroring the source file's directory underneath) | `<name>.spec.ts` | Playwright discovers specs by `testDir` + a `.spec.ts`-style `testMatch`, not by scanning the whole repo — writing alongside source with a generic suffix would never be picked up |
-| `cypress` | `cypress/e2e/` (mirroring the source file's directory underneath) | `<name>.cy.ts` | Matches Cypress's default `specPattern` (`cypress/e2e/**/*.cy.{js,jsx,ts,tsx}`) |
 
-For Playwright and Cypress, the source file's relative directory is preserved underneath the target directory (e.g. `src/app/about/page.tsx` → `tests/src/app/about/page.spec.ts`) so same-named files in different directories — very common with Next.js `page.tsx`/`route.ts` — don't overwrite each other. If your project uses a non-default `testDir`/`testMatch`/`specPattern` (e.g. splitting suites into `tests/ui/` vs `tests/api/`), pass `--out` to place generated files where your config actually looks.
+For Playwright, the source file's relative directory is preserved underneath the target directory (e.g. `src/app/about/page.tsx` → `tests/src/app/about/page.spec.ts`) so same-named files in different directories — very common with Next.js `page.tsx`/`route.ts` — don't overwrite each other. If your project uses a non-default `testDir`/`testMatch` (e.g. splitting suites into `tests/ui/` vs `tests/api/`), pass `--out` to place generated files where your config actually looks.
 
 Like `qa-agent gaps`, the gap-analysis step chunks source files by both count and content size, and caps existing test files sent as context the same way, so large repos and large test suites don't blow past the model's context limit.
 
@@ -900,26 +899,6 @@ qa-agent test --cmd "pytest --junitxml=test-results/results.xml" \
               --junit test-results/results.xml
 ```
 
-#### Cypress
-
-```js
-// cypress.config.js
-module.exports = defineConfig({
-  reporter: 'junit',
-  reporterOptions: {
-    mochaFile: 'test-results/cypress-[hash].xml',
-  },
-})
-```
-
-```yaml
-# .test-arbiter/config.yaml
-suites:
-  e2e:
-    command: "npx cypress run"
-    junit_glob: "test-results/cypress-*.xml"
-```
-
 #### JUnit / Maven
 
 ```xml
@@ -1219,18 +1198,6 @@ No extra packages needed:
 
 ```bash
 pytest --junitxml=test-results/results.xml
-```
-
-#### Cypress
-
-```js
-// cypress.config.js
-module.exports = defineConfig({
-  reporter: 'junit',
-  reporterOptions: {
-    mochaFile: 'test-results/cypress-[hash].xml',
-  },
-})
 ```
 
 #### JUnit / Maven
