@@ -139,7 +139,7 @@ version: 1
 project: myapp
 model: claude-opus-5   # optional — omit to use each provider's default
 store_dir: .test-arbiter   # default; override to change where run history/gap reports are stored
-api_url: https://api.testarbiter.com   # default; only needed if you're overriding the hosted dashboard endpoint
+api_url: https://api.testarbiter.com   # reserved for the hosted dashboard — no effect until it ships
 
 suites:
   unit:
@@ -595,7 +595,7 @@ suites:
 
 #### `qa-agent run-regression`
 
-Parse JUnit XML results from your test runner, triage every failure with Claude, and save the run locally. Automatically pushes to the hosted dashboard if you've connected your account. Use this instead of `qa-agent test` when your CI already ran the tests and just needs the results triaged.
+Parse JUnit XML results from your test runner, triage every failure with Claude, and save the run locally. Use this instead of `qa-agent test` when your CI already ran the tests and just needs the results triaged.
 
 ```bash
 # Point directly at JUnit XML
@@ -770,15 +770,19 @@ qa-agent watch --once
 
 #### `qa-agent auth`
 
-Connect to the Test Arbiter hosted dashboard. Once authenticated, every `run-regression` automatically pushes results after triage.
+> **Not available yet.** The hosted dashboard is still on the [roadmap](#roadmap) — there's
+> no service to connect to and no way to obtain a token, so these commands currently do
+> nothing. Every other command works entirely locally and needs no account. Run history is
+> stored in `.test-arbiter/` on your machine.
+
+Reserved for connecting to the Test Arbiter hosted dashboard. Once it ships, authenticating
+will make each `run-regression` push its results automatically after triage.
 
 ```bash
 qa-agent auth login --token <token>   # save your dashboard token
 qa-agent auth status                  # verify connection
 qa-agent auth logout                  # remove saved token
 ```
-
-Get your token at testarbiter.com/settings.
 
 ### Test runner setup
 
@@ -1120,7 +1124,7 @@ version: 1
 project: myapp
 model: claude-opus-5   # optional — omit to use each provider's default
 store_dir: .test-arbiter   # default; override to change where run history/gap reports are stored
-api_url: https://api.testarbiter.com   # default; only needed if you're overriding the hosted dashboard endpoint
+api_url: https://api.testarbiter.com   # reserved for the hosted dashboard — no effect until it ships
 
 suites:
   unit:
