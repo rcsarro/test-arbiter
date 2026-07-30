@@ -130,7 +130,7 @@ qa-agent test
 
 ### Config file (`.test-arbiter/config.yaml`)
 
-Run `qa-agent config init` to generate one — it detects jest/vitest/playwright/mocha from your `package.json` scripts and proposes a `command` + `junit_glob` (and reporter env vars, where the runner needs them) per suite, prompting you to accept, edit, or skip each. It also offers to install a missing JUnit reporter (e.g. `jest-junit`) as a dev dependency. In a non-interactive shell (CI) or with `--yes`, it accepts everything detected without prompting; with nothing detected, it falls back to a static starter template.
+Run `qa-agent config init` to generate one — it detects jest/vitest/playwright/mocha/`node --test` from your `package.json` scripts and proposes a `command` + `junit_glob` (and reporter env vars, where the runner needs them) per suite, prompting you to accept, edit, or skip each. It also offers to install a missing JUnit reporter (e.g. `jest-junit`) as a dev dependency. In a monorepo it looks inside your packages too — see [Monorepos](#monorepos) below. In a non-interactive shell (CI) or with `--yes`, it accepts everything detected without prompting. If it can't work out how your tests run, it asks you for the command rather than leaving you with an unusable file.
 
 Most commands work fine without a config file (using defaults and flags), but it lets you define suites, per-project overrides, and a model override once instead of passing flags every time. Full structure:
 
@@ -163,11 +163,37 @@ projects:
 #### `qa-agent config`
 
 ```bash
-qa-agent config init             # detect test runners, prompt, write/merge .test-arbiter/config.yaml
-qa-agent config init --yes       # accept all detected suites, no prompts, no dep installs
-qa-agent config init --force     # regenerate from scratch instead of merging
-qa-agent config show             # show resolved config
+qa-agent config init                   # detect test runners, prompt, write/merge .test-arbiter/config.yaml
+qa-agent config init --yes             # accept all detected suites, no prompts, no dep installs
+qa-agent config init --force           # regenerate from scratch instead of merging
+qa-agent config init --packages api    # monorepo: only set up packages matching "api"
+qa-agent config show                   # show resolved config
 ```
+
+#### Monorepos
+
+Run `config init` from the repo root and it looks inside your packages, not just the root directory. It reads whatever your repo declares about itself — npm/yarn `workspaces`, `pnpm-workspace.yaml`, `lerna.json` — and falls back to a bounded scan for package manifests when nothing is declared. `node_modules`, build output, and virtualenvs are skipped.
+
+Each package with tests becomes its own suite, named after the package, so a triage report tells you *which* package failed:
+
+```yaml
+suites:
+  api:
+    command: cd packages/api && npm run test -- --reporter=junit --outputFile=test-results/unit/results.xml
+    junit_glob: packages/api/test-results/unit/results.xml
+  web:
+    command: cd apps/web && npm run test -- --reporter=junit
+    junit_glob: apps/web/test-results/e2e/results.xml
+```
+
+If the root has its own tests, that suite is kept too — package suites are additive.
+
+Two cases where it deliberately stops rather than guessing:
+
+- **More than 10 packages have tests.** It lists them and asks you to narrow with `--packages <substring>`, matched against the package path or name. Reviewing forty suites one prompt at a time isn't a workflow.
+- **A non-interactive run (CI or `--yes`) where several packages have tests.** It won't pick for you. Pass `--packages` to be explicit, or run interactively to review each one.
+
+Both exit non-zero without writing a config, so a scripted setup fails loudly instead of quietly wiring up the wrong thing.
 
 ---
 
