@@ -72,9 +72,9 @@ Test Arbiter picks the model to match the job instead of always reaching for the
 
 | Job | Commands | Anthropic | OpenAI | Gemini | Bedrock |
 |---|---|---|---|---|---|
-| **fast** — quick reads | `summarize` | `claude-haiku-4-5` | `gpt-4o-mini` | `gemini-2.0-flash` | `anthropic.claude-haiku-4-5` |
-| **code** — reading/writing code | `gaps`, `generate`, `heal` | `claude-sonnet-5` | `gpt-4o` | `gemini-2.0-flash` | `anthropic.claude-sonnet-5` |
-| **reasoning** — triage verdicts | `test`, `run-regression`, `triage`, `watch` | `claude-opus-5` | `gpt-4o` | `gemini-2.0-flash` | `anthropic.claude-opus-5` |
+| **fast** — quick reads | `summarize` | `claude-haiku-4-5` | `gpt-5.4-mini` | `gemini-2.0-flash` | `anthropic.claude-haiku-4-5` |
+| **code** — reading/writing code | `gaps`, `generate`, `heal` | `claude-sonnet-5` | `gpt-5.5` | `gemini-2.0-flash` | `anthropic.claude-sonnet-5` |
+| **reasoning** — triage verdicts | `test`, `run-regression`, `triage`, `watch` | `claude-opus-5` | `gpt-5.5` | `gemini-2.0-flash` | `anthropic.claude-opus-5` |
 
 Override any of these with `-m, --model` per command, or set `model:` in `.test-arbiter/config.yaml` to force one model everywhere.
 
@@ -82,7 +82,7 @@ Override any of these with `-m, --model` per command, or set `model:` in `.test-
 
 Or skip the export and pass a key explicitly per command:
 ```bash
-qa-agent gaps --provider openai --api-key sk-... --model gpt-4o
+qa-agent gaps --provider openai --api-key sk-... --model gpt-5.5
 ```
 
 > Using Test Arbiter through your AI assistant instead? Skip this section entirely — the [MCP server](#using-test-arbiter-as-an-mcp-server) never needs a key of its own.
@@ -651,7 +651,7 @@ qa-agent run-regression --output json | jq .action_items
 | `--commit <sha>` | Commit SHA |
 | `--provider <name>` | `anthropic`, `openai`, `gemini`, or `bedrock` (auto-detected; bedrock requires explicit --provider) |
 | `--api-key <key>` | API key for the chosen provider |
-| `-m, --model <model>` | Model override (e.g. `gpt-4o`, `gemini-2.0-flash`) |
+| `-m, --model <model>` | Model override (e.g. `gpt-5.5`, `gemini-2.0-flash`). A model the provider does not recognise is answered with the ones your account can use. |
 | `-o, --output <format>` | `rich` (default) or `json` |
 | `--no-save` | Skip saving to local store |
 | `--no-push` | Skip pushing to dashboard |
